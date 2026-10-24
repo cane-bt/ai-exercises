@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>業務日報台帳</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+JP:wght@400;500;600&family=Shippori+Mincho:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #1a1712;
+      --ink-soft: #4a453c;
+      --mute: #6f685c;
+      --paper: #f4ecd9;
+      --paper-2: #ebe1c8;
+      --rule: #d7ccb3;
+      --rule-strong: #1a1712;
+      --accent: #c44521;
+      --accent-deep: #8f2e14;
+      --done: #3d5a3a;
+      --done-bg: #dfe8d4;
+      --white: #fbf7ec;
+      --shadow: rgba(26, 23, 18, 0.08);
+      --radius: 2px;
+      --sans: "IBM Plex Sans JP", "Hiragino Sans", sans-serif;
+      --serif: "Shippori Mincho", "Yu Mincho", serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: var(--sans);
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.55;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(90deg, rgba(26, 23, 18, 0.03) 1px, transparent 1px),
+        linear-gradient(rgba(26, 23, 18, 0.03) 1px, transparent 1px);
+      background-size: 32px 32px;
+      opacity: 0.45;
+      z-index: 0;
+    }
+
+    button, input, textarea, select { font-family: inherit; color: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    select:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 22px 80px;
+    }
+
+    .masthead {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: end;
+      border-bottom: 3px solid var(--ink);
+      padding-bottom: 14px;
+      margin-bottom: 22px;
+    }
+    .kicker {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 0 0 6px;
+    }
+    h1 {
+      font-family: var(--serif);
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      margin: 0;
+      line-height: 1.15;
+    }
+    .sub {
+      margin: 8px 0 0;
+      color: var(--ink-soft);
+      font-size: 13px;
+    }
+
+    .date-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .icon-btn, .text-btn, .primary-btn, .ghost-btn {
+      border: 1px solid var(--ink);
+      background: var(--white);
+      min-height: 36px;
+      padding: 0 12px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+    }
+    .icon-btn {
+      width: 36px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+    }
+    .icon-btn:hover, .text-btn:hover, .ghost-btn:hover { background: var(--paper-2); }
+    .primary-btn {
+      background: var(--accent);
+      color: var(--white);
+      border-color: var(--accent-deep);
+    }
+    .primary-btn:hover { background: var(--accent-deep); }
+    .date-label {
+      font-family: var(--mono);
+      font-size: 14px;
+      min-width: 132px;
+      text-align: center;
+    }
+    .today-chip {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 2px 6px;
+      margin-left: 4px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 220px 1fr 280px;
+      gap: 22px;
+    }
+
+    .panel {
+      background: var(--white);
+      border: 1px solid var(--rule-strong);
+    }
+    .panel-h {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--ink);
+      font-family: var(--serif);
+      font-size: 16px;
+      letter-spacing: 0.08em;
+    }
+    .panel-b { padding: 14px; }
+    .stack { display: grid; gap: 16px; align-content: start; }
+
+    .stat-num {
+      font-family: var(--serif);
+      font-size: 48px;
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+    .stat-num small {
+      font-size: 18px;
+      color: var(--mute);
+      margin-left: 4px;
+    }
+    .meter {
+      height: 8px;
+      background: var(--paper-2);
+      border: 1px solid var(--ink);
+      margin: 12px 0 8px;
+    }
+    .meter > span {
+      display: block;
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 220ms ease;
+    }
+    .meta {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--mute);
+      display: grid;
+      gap: 6px;
+    }
+    .meta .warn { color: var(--accent); font-weight: 500; }
+    .stamp {
+      margin-top: 16px;
+      border: 3px solid var(--accent);
+      color: var(--accent);
+      font-family: var(--serif);
+      font-weight: 700;
+      letter-spacing: 0.28em;
+      text-align: center;
+      padding: 10px 8px;
+      transform: rotate(-8deg);
+      opacity: 0.9;
+      pointer-events: none;
+      display: none;
+    }
+    .stamp.show { display: block; }
+
+    .sections { display: grid; gap: 16px; align-content: start; }
+    .section-h {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      border-bottom: 1px solid var(--ink);
+      padding: 12px 14px 8px;
+    }
+    .section-h h2 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+    }
+    .section-h .when {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--mute);
+    }
+
+    .item {
+      display: grid;
+      grid-template-columns: 28px 1fr auto;
+      gap: 10px;
+      align-items: start;
+      padding: 10px 4px;
+      border-bottom: 1px dashed var(--rule);
+    }
+    .item:last-of-type { border-bottom: 0; }
+    .item.done .title {
+      color: var(--mute);
+      text-decoration: line-through;
+      text-decoration-thickness: 1px;
+    }
+    .item.late .title { color: var(--accent-deep); }
+    .check {
+      width: 22px;
+      height: 22px;
+      margin-top: 1px;
+      border: 1.5px solid var(--ink);
+      background: var(--white);
+      display: grid;
+      place-items: center;
+      padding: 0;
+    }
+    .item.done .check {
+      background: var(--done);
+      border-color: var(--done);
+      color: var(--white);
+    }
+    .item.late .check { border-color: var(--accent); }
+    .title {
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .item-meta {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--mute);
+      margin-top: 3px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 8px;
+      align-items: center;
+    }
+    .chip {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      border: 1px solid var(--rule);
+      padding: 0 5px;
+      line-height: 16px;
+      white-space: nowrap;
+    }
+    .chip.late { border-color: var(--accent); background: var(--accent); color: var(--white); }
+    .chip.carry { border-color: var(--ink-soft); color: var(--ink-soft); }
+    .chip.recur { border-style: dashed; }
+    .item-actions {
+      display: flex;
+      gap: 4px;
+    }
+    .tiny {
+      border: 0;
+      background: transparent;
+      color: var(--mute);
+      font-size: 11px;
+      padding: 2px 4px;
+      min-height: 0;
+    }
+    .tiny:hover { color: var(--accent); }
+
+    .field {
+      border: 1px solid var(--ink);
+      background: var(--paper);
+      padding: 8px 10px;
+      font-size: 13px;
+      width: 100%;
+      min-width: 0;
+    }
+    .field.time { width: 104px; font-family: var(--mono); }
+    select.field { width: auto; }
+
+    .composer {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .composer .opts {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--ink-soft);
+    }
+    .note {
+      min-height: 120px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+    .note.short { min-height: 72px; }
+    .label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: var(--mute);
+      margin: 12px 0 6px;
+    }
+    .label:first-child { margin-top: 0; }
+
+    .inbound {
+      border-left: 3px solid var(--accent);
+      background: var(--paper);
+      padding: 8px 10px;
+      font-size: 13px;
+      white-space: pre-wrap;
+    }
+
+    .row-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+    .tpl-group { margin-bottom: 14px; }
+    .tpl-list { display: grid; gap: 10px; }
+    .tpl-row {
+      display: grid;
+      gap: 4px;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed var(--rule);
+    }
+    .tpl-row .line {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .tpl-row .field { padding: 5px 6px; font-size: 12px; }
+    .tpl-row .field.time { width: 88px; }
+
+    .log-form { display: grid; gap: 8px; }
+    .log-form-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 8px;
+    }
+    .log-form textarea { resize: vertical; }
+    .log-list { margin-bottom: 14px; }
+    .log {
+      display: grid;
+      grid-template-columns: 52px 1fr auto;
+      gap: 10px;
+      padding: 10px 4px;
+      border-bottom: 1px dashed var(--rule);
+    }
+    .log-at { font-family: var(--mono); font-size: 13px; padding-top: 1px; }
+    .log-event { font-size: 14px; font-weight: 600; }
+    .log-action { font-size: 13px; color: var(--ink-soft); white-space: pre-wrap; margin-top: 2px; }
+    .status-btn {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      border: 1px solid var(--accent);
+      background: var(--white);
+      color: var(--accent);
+      padding: 0 6px;
+      line-height: 18px;
+    }
+    .status-btn.done { border-color: var(--done); background: var(--done-bg); color: var(--done); }
+    .log.editing { display: block; }
+
+    .timer-btn {
+      font-family: var(--mono);
+      font-size: 10px;
+      border: 1px solid var(--ink-soft);
+      background: var(--white);
+      padding: 0 6px;
+      line-height: 16px;
+    }
+    .timer-btn:hover { background: var(--paper-2); }
+    .timer-btn.on { background: var(--ink); border-color: var(--ink); color: var(--white); }
+    .spent { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px; background: none; border: 0; padding: 0; font: inherit; color: inherit; }
+    .item.running, .log.running { background: linear-gradient(90deg, var(--paper) 0, transparent 70%); }
+
+    .running-box {
+      margin-top: 14px;
+      border: 1px solid var(--ink);
+      background: var(--ink);
+      color: var(--white);
+      padding: 8px 10px;
+      font-size: 12px;
+      display: grid;
+      gap: 6px;
+    }
+    .running-box .clock { font-family: var(--mono); font-size: 20px; letter-spacing: 0.04em; }
+    .running-box .what { overflow-wrap: anywhere; }
+    .running-box button { background: var(--white); color: var(--ink); border: 0; min-height: 28px; font-size: 12px; }
+
+    .breakdown { display: grid; gap: 8px; margin-top: 4px; }
+    .bd-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 12px; }
+    .bd-row .bar { grid-column: 1 / -1; height: 6px; background: var(--paper-2); }
+    .bd-row .bar > span { display: block; height: 100%; background: var(--ink-soft); }
+    .bd-row .num { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); }
+
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin: -8px 0 18px;
+      border-bottom: 1px solid var(--ink);
+    }
+    .tab {
+      border: 1px solid var(--ink);
+      border-bottom: 0;
+      background: transparent;
+      padding: 6px 16px;
+      font-family: var(--serif);
+      font-size: 15px;
+      letter-spacing: 0.1em;
+      margin-right: -1px;
+      margin-bottom: -1px;
+    }
+    .tab[aria-selected="true"] { background: var(--white); border-bottom: 1px solid var(--white); }
+
+    .summary { display: grid; gap: 16px; }
+    .table-wrap { overflow-x: auto; }
+    .summary-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+    .seg { display: inline-flex; }
+    .seg button { border: 1px solid var(--ink); background: var(--white); min-height: 32px; padding: 0 14px; font-size: 13px; margin-right: -1px; }
+    .seg button[aria-pressed="true"] { background: var(--ink); color: var(--white); }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    .kpi { background: var(--white); border: 1px solid var(--ink); padding: 12px 14px; }
+    .kpi .k { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; color: var(--mute); }
+    .kpi .v { font-family: var(--serif); font-size: 30px; line-height: 1.2; margin-top: 4px; }
+    .kpi .v small { font-size: 14px; color: var(--mute); margin-left: 2px; }
+    .kpi .d { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+    .summary-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; align-items: start; }
+    table.days { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.days th, table.days td { padding: 7px 8px; border-bottom: 1px dashed var(--rule); text-align: left; }
+    table.days th { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--mute); font-weight: 500; border-bottom: 1px solid var(--ink); }
+    table.days td.n, table.days th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+    table.days tr.clickable { cursor: pointer; }
+    table.days tr.clickable:hover td { background: var(--paper); }
+    table.days tr.empty td { color: var(--mute); }
+    .rate { display: grid; grid-template-columns: 1fr 40px; gap: 6px; align-items: center; min-width: 120px; }
+    .rate .meter { margin: 0; height: 6px; }
+    .rate .n { font-family: var(--mono); font-size: 11px; text-align: right; }
+    .rank { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+    .rank li { display: grid; grid-template-columns: 1fr auto; gap: 8px; font-size: 13px; border-bottom: 1px dashed var(--rule); padding-bottom: 6px; }
+    .rank .c { font-family: var(--mono); font-size: 12px; color: var(--accent-deep); }
+    .rank .s { display: block; font-family: var(--mono); font-size: 10px; color: var(--mute); }
+    .file-input { display: none; }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--ink);
+      color: var(--white);
+      padding: 10px 14px;
+      font-size: 13px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 180ms ease, transform 180ms ease;
+      z-index: 20;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: none; }
+
+    .help {
+      margin-top: 2px;
+      font-size: 11px;
+      color: var(--mute);
+      font-family: var(--mono);
+    }
+
+    @media (max-width: 980px) {
+      .layout, .summary-grid { grid-template-columns: minmax(0, 1fr); }
+      .masthead { grid-template-columns: 1fr; }
+      .date-nav { flex-wrap: wrap; }
+    }
+    @media (max-width: 560px) {
+      .composer { grid-template-columns: 1fr auto; }
+      .composer .field.time { grid-column: 1; }
+      .log-form-row { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
+    }
+
+    @media print {
+      body::before, .composer, .item-actions, .row-btns, .tiny, .date-nav button, .date-nav input, .help, .toast, .log-form, .no-print, .tabs, .timer-btn, .running-box, .seg { display: none !important; }
+      body { background: white; }
+      .page { max-width: none; padding: 0; }
+      .panel { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="masthead">
+      <div>
+        <p class="kicker">Daily Operations Ledger</p>
+        <h1>業務日報台帳</h1>
+        <p class="sub">運用ルーチンの抜け漏れを防ぎ、対応を記録し、引き継ぎまでその日のうちに閉じる。データはこのブラウザに保存されます。</p>
+      </div>
+      <div class="date-nav" aria-label="日付操作">
+        <button class="icon-btn" id="prevDay" aria-label="前日">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>
+        </button>
+        <div class="date-label" id="dateLabel"></div>
+        <button class="icon-btn" id="nextDay" aria-label="翌日">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <button class="text-btn" id="todayBtn">今日</button>
+        <input type="date" id="datePicker" class="text-btn" aria-label="日付を選ぶ" />
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="表示切替">
+      <button class="tab" role="tab" id="tabDaily" aria-controls="dailyView" aria-selected="true">日次</button>
+      <button class="tab" role="tab" id="tabSummary" aria-controls="summaryView" aria-selected="false">振り返り</button>
+    </nav>
+
+    <section class="summary" id="summaryView" role="tabpanel" aria-labelledby="tabSummary" hidden></section>
+
+    <div class="layout" id="dailyView" role="tabpanel" aria-labelledby="tabDaily">
+      <aside class="stack">
+        <div class="panel">
+          <div class="panel-h">進捗</div>
+          <div class="panel-b">
+            <div class="stat-num" id="progressNum">0<small>/0</small></div>
+            <div class="meter" aria-hidden="true"><span id="meterFill"></span></div>
+            <div class="meta">
+              <div>完了率 <span id="progressPct">0%</span></div>
+              <div id="lateCount"></div>
+              <div>対応中ログ <span id="openLogs">0</span> 件</div>
+              <div>連続完走 <span id="streak">0</span> 日</div>
+              <div id="todayMark"></div>
+            </div>
+            <div class="stamp" id="stamp">完了</div>
+            <div id="runningBox"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-h">所要時間 <span class="item-meta" id="timeTotal"></span></div>
+          <div class="panel-b">
+            <div class="breakdown" id="timeBreakdown"></div>
+            <p class="sub" style="font-size:11px">各項目の「計測」で開始・停止。時間の数字を押すと手で直せます。</p>
+          </div>
+        </div>
+      </aside>
+
+      <main class="sections">
+        <div class="sections" id="sections"></div>
+        <section class="panel" id="logPanel"></section>
+      </main>
+
+      <aside class="stack">
+        <div class="panel" id="inboundPanel" hidden>
+          <div class="panel-h">前日からの申し送り</div>
+          <div class="panel-b">
+            <div class="item-meta" style="margin:0 0 6px" id="inboundFrom"></div>
+            <div class="inbound" id="inboundText"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-h">引き継ぎ</div>
+          <div class="panel-b">
+            <label class="label" for="next">明日の先頭タスク</label>
+            <textarea class="field note short" id="next" placeholder="翌日の最初にやること。翌日の画面に申し送りとして表示されます。"></textarea>
+            <label class="label" for="note">当日メモ</label>
+            <textarea class="field note" id="note" placeholder="ブロッカー、気づき、共有事項…"></textarea>
+            <div class="row-btns">
+              <button class="primary-btn" id="copyHandover">引き継ぎメモをコピー</button>
+              <button class="ghost-btn" id="printBtn">印刷</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel no-print">
+          <div class="panel-h">定型テンプレ</div>
+          <div class="panel-b">
+            <p class="sub" style="margin:0 0 10px">新しい日を開くときに適用されます。予定時刻を入れると、過ぎても未完了なら「遅れ」と表示します。</p>
+            <div id="templateEditor"></div>
+            <div class="row-btns">
+              <button class="ghost-btn" id="applyTemplate">今日に再適用</button>
+              <button class="ghost-btn" id="resetDefaults">初期テンプレに戻す</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel no-print">
+          <div class="panel-h">データ</div>
+          <div class="panel-b">
+            <p class="sub" style="margin:0 0 10px">記録はこのブラウザの中だけにあります。定期的に書き出しておくと安心です。</p>
+            <div class="row-btns" style="margin-top:0">
+              <button class="ghost-btn" id="exportJson">JSON で書き出す</button>
+              <button class="ghost-btn" id="importJson">JSON を読み込む</button>
+              <input type="file" accept="application/json,.json" id="importFile" class="file-input" />
+            </div>
+            <div class="row-btns">
+              <button class="tiny" id="loadSample">サンプルデータを入れる</button>
+              <button class="tiny" id="wipeData">すべて消去</button>
+            </div>
+          </div>
+        </div>
+        <p class="help">N 項目追加 / L ログ記録 / T 今日 / [ ] 日付移動 / V 表示切替</p>
+      </aside>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const STORAGE_KEY = "ops-day-checklist-v1";
+    const SCHEMA_VERSION = 2;
+    const CARRY_LOOKBACK_DAYS = 14;
+    const WEEK = "日月火水木金土";
+    const SECTIONS = [
+      { id: "open", title: "始業点検", when: "09:00 前後" },
+      { id: "mid", title: "日中運用", when: "12:00–16:00" },
+      { id: "close", title: "終業クローズ", when: "18:00 前後" },
+      { id: "adHoc", title: "当日追加", when: "随時" },
+    ];
+    const ROUTINE_SECTIONS = SECTIONS.filter((s) => s.id !== "adHoc");
+    const SECTION_TITLE = Object.fromEntries(SECTIONS.map((s) => [s.id, s.title]));
+    const BREAKDOWN_LABELS = [["routine", "定型"], ["adHoc", "当日追加・繰越"], ["log", "対応ログ"]];
+
+    // recur: { kind: "daily" | "weekly" | "monthly", value }
+    //   weekly  → value は曜日（0=日 … 6=土）
+    //   monthly → value は日付（1–31、0=末日）
+    const DEFAULT_TEMPLATE = {
+      open: [
+        { title: "監視ダッシュボードとアラートを確認する", time: "09:00" },
+        { title: "夜間バッチ・ジョブの結果を確認する", time: "09:15" },
+        { title: "Slack / メールの未読を仕分ける", time: "09:30" },
+        { title: "当日のメンテナンス予定と締切を確認する", time: "09:45" },
+        { title: "週次バックアップの成否を確認する", time: "10:00", recur: { kind: "weekly", value: 1 } },
+      ],
+      mid: [
+        { title: "進行中チケットの状況を更新する", time: "13:00" },
+        { title: "待ち・ブロッカーを関係者へ連絡する", time: "14:00" },
+        { title: "証明書・ライセンスの期限を確認する", time: "14:30", recur: { kind: "monthly", value: 1 } },
+        { title: "午後の優先順位を見直す", time: "15:00" },
+      ],
+      close: [
+        { title: "週次レポート用の数字をまとめる", time: "17:00", recur: { kind: "weekly", value: 5 } },
+        { title: "対応ログを見直し、対応中を整理する", time: "17:30" },
+        { title: "明日の先頭タスクを書く", time: "17:45" },
+        { title: "翌日のメンテナンス予定を確認する", time: "18:00" },
+      ],
+    };
+
+    /* ---------- utilities ---------- */
+
+    const uid = () => crypto.randomUUID();
+    const z2 = (n) => String(n).padStart(2, "0");
+    const toISO = (d) => `${d.getFullYear()}-${z2(d.getMonth() + 1)}-${z2(d.getDate())}`;
+    const todayISO = () => toISO(new Date());
+    const parseISO = (iso) => {
+      const [y, m, d] = iso.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    };
+    const addDays = (iso, n) => {
+      const d = parseISO(iso);
+      d.setDate(d.getDate() + n);
+      return toISO(d);
+    };
+    const nowHM = () => {
+      const d = new Date();
+      return `${z2(d.getHours())}:${z2(d.getMinutes())}`;
+    };
+    const fmtJP = (iso) => {
+      const d = parseISO(iso);
+      return `${d.getFullYear()}.${z2(d.getMonth() + 1)}.${z2(d.getDate())}（${WEEK[d.getDay()]}）`;
+    };
+    const fmtClock = (isoTime) =>
+      new Date(isoTime).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
+
+    // DOM を組み立てる小さなヘルパ。ユーザー入力は必ず text / value で渡し、innerHTML には入れない。
+    function h(tag, props = {}, ...children) {
+      const el = document.createElement(tag);
+      for (const [k, v] of Object.entries(props || {})) {
+        if (v == null || v === false) continue;
+        if (k === "class") el.className = v;
+        else if (k === "text") el.textContent = v;
+        else if (k === "html") el.innerHTML = v;
+        else if (k === "value" || k === "checked") el[k] = v;
+        else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+        else el.setAttribute(k, v === true ? "" : v);
+      }
+      for (const c of children.flat()) if (c != null && c !== false) el.append(c);
+      return el;
+    }
+
+    /* ---------- recurrence ---------- */
+
+    function normRecur(r) {
+      if (!r || !["weekly", "monthly"].includes(r.kind)) return { kind: "daily", value: 0 };
+      return { kind: r.kind, value: Number(r.value) || 0 };
+    }
+    function recurMatches(recur, iso) {
+      const d = parseISO(iso);
+      if (recur.kind === "weekly") return d.getDay() === recur.value;
+      if (recur.kind === "monthly") {
+        const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+        return d.getDate() === (recur.value === 0 ? last : Math.min(recur.value, last));
+      }
+      return true;
+    }
+    function recurLabel(recur) {
+      if (recur.kind === "weekly") return `毎週${WEEK[recur.value]}`;
+      if (recur.kind === "monthly") return recur.value === 0 ? "毎月末日" : `毎月${recur.value}日`;
+      return "毎日";
+    }
+
+    /* ---------- state ---------- */
+
+    function seedState() {
+      return { version: SCHEMA_VERSION, template: cloneTemplate(DEFAULT_TEMPLATE), days: {}, running: null };
+    }
+    function cloneTemplate(src) {
+      const out = {};
+      for (const s of ROUTINE_SECTIONS) out[s.id] = (src[s.id] || []).map(normTemplate);
+      return out;
+    }
+    function normTemplate(t) {
+      if (typeof t === "string") t = { title: t };
+      return { id: t.id || uid(), title: String(t.title || ""), time: t.time || "", recur: normRecur(t.recur) };
+    }
+    function newItem(fields) {
+      return {
+        id: uid(),
+        templateId: null,
+        section: "adHoc",
+        title: "",
+        time: "",
+        recurKind: "daily",
+        done: false,
+        doneAt: null,
+        adHoc: false,
+        carriedFrom: null,
+        carriedTo: null,
+        spentMs: 0,
+        ...fields,
+      };
+    }
+    function newLog(fields) {
+      return {
+        id: uid(),
+        at: nowHM(),
+        event: "",
+        action: "",
+        status: "open",
+        carriedFrom: null,
+        carriedTo: null,
+        spentMs: 0,
+        ...fields,
+      };
+    }
+    function normDay(day) {
+      day.note ??= "";
+      day.next ??= "";
+      day.inbound ??= null;
+      day.items = (day.items || []).map((i) => newItem({ id: i.id || uid(), ...i }));
+      day.logs = (day.logs || []).map((l) => newLog({ id: l.id || uid(), ...l }));
+      return day;
+    }
+
+    // v1（項目名だけのテンプレ、ログなし）からの移行も含めて正規化する
+    function migrate(s) {
+      if (!s || typeof s !== "object" || !s.template || !s.days) return seedState();
+      const from = s.version || 1;
+      const template = {};
+      for (const sec of ROUTINE_SECTIONS) template[sec.id] = (s.template[sec.id] || []).map(normTemplate);
+      s.template = template;
+      for (const day of Object.values(s.days)) {
+        normDay(day);
+        if (from < 2) {
+          // 既存の記録は使用済みとして扱い、繰越の対象にもしない
+          day.touched = true;
+          day.carryChecked = true;
+        }
+      }
+      const r = s.running;
+      s.running = r && s.days[r.date] && ["item", "log"].includes(r.kind) && Number.isFinite(r.since) ? r : null;
+      s.version = SCHEMA_VERSION;
+      return s;
+    }
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? migrate(JSON.parse(raw)) : seedState();
+      } catch {
+        return seedState();
+      }
+    }
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    // 日付を開いただけでは touched にならない（集計や繰越で「使っていない日」を区別するため）
+    function ensureDay(iso) {
+      if (!state.days[iso]) {
+        state.days[iso] = {
+          note: "",
+          next: "",
+          inbound: null,
+          logs: [],
+          touched: false,
+          carryChecked: false,
+          items: snapshotFromTemplate(iso),
+        };
+        save();
+      }
+      return state.days[iso];
+    }
+    function snapshotFromTemplate(iso) {
+      const items = [];
+      for (const s of ROUTINE_SECTIONS) {
+        for (const t of state.template[s.id] || []) {
+          if (!recurMatches(t.recur, iso)) continue;
+          items.push(newItem({
+            templateId: t.id,
+            section: s.id,
+            title: t.title,
+            time: t.time,
+            recurKind: t.recur.kind,
+          }));
+        }
+      }
+      return items;
+    }
+    function commit(day = ensureDay(currentDate)) {
+      day.touched = true;
+      save();
+      render();
+    }
+
+    let state = loadState();
+    let currentDate = todayISO();
+    let editingLogId = null;
+    let view = "daily";
+    let period = "week";
+    let toastTimer;
+
+    /* ---------- carry over ---------- */
+
+    // 今日を初めて開いたとき、直近の記録日から未完了と対応中ログを引き継ぐ。
+    // 毎日の定型はテンプレから再生成されるので繰り越さない。
+    function carryOver(iso) {
+      const day = ensureDay(iso);
+      if (day.carryChecked) return;
+      day.carryChecked = true;
+
+      let srcISO = null;
+      for (let i = 1; i <= CARRY_LOOKBACK_DAYS; i++) {
+        const p = addDays(iso, -i);
+        if (state.days[p]?.touched) { srcISO = p; break; }
+      }
+      if (!srcISO) { save(); return; }
+      const src = state.days[srcISO];
+
+      const items = src.items.filter(
+        (i) => !i.done && !i.carriedTo && (i.adHoc || i.carriedFrom || i.recurKind !== "daily")
+      );
+      for (const i of items) {
+        i.carriedTo = iso;
+        day.items.push(newItem({ section: i.section, title: i.title, time: i.time, adHoc: true, carriedFrom: srcISO }));
+      }
+      const logs = src.logs.filter((l) => l.status === "open" && !l.carriedTo);
+      for (const l of logs) {
+        l.carriedTo = iso;
+        day.logs.push(newLog({ at: l.at, event: l.event, action: l.action, carriedFrom: srcISO }));
+      }
+      if (src.next.trim()) day.inbound = { from: srcISO, text: src.next.trim() };
+
+      if (items.length || logs.length || day.inbound) {
+        day.touched = true;
+        const parts = [];
+        if (items.length) parts.push(`未完了 ${items.length} 件`);
+        if (logs.length) parts.push(`対応中ログ ${logs.length} 件`);
+        if (day.inbound) parts.push("申し送り");
+        setTimeout(() => toast(`${fmtJP(srcISO)} から${parts.join("・")}を引き継ぎました`), 0);
+      }
+      save();
+    }
+
+    /* ---------- derived ---------- */
+
+    function lateStatus(item, iso) {
+      if (item.done || !item.time) return false;
+      const today = todayISO();
+      return iso < today || (iso === today && nowHM() > item.time);
+    }
+    function sortItems(items) {
+      return [...items].sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"));
+    }
+    function progressOf(day) {
+      const total = day.items.length;
+      const done = day.items.filter((i) => i.done).length;
+      return { total, done, pct: total ? Math.round((done / total) * 100) : 0 };
+    }
+    function isComplete(iso) {
+      const day = state.days[iso];
+      return !!day && day.items.length > 0 && day.items.every((i) => i.done);
+    }
+    function streakCount() {
+      let cursor = todayISO();
+      if (!isComplete(cursor)) cursor = addDays(cursor, -1);
+      let n = 0;
+      while (isComplete(cursor)) {
+        n += 1;
+        cursor = addDays(cursor, -1);
+      }
+      return n;
+    }
+    // 振り返り用: 予定時刻より後に完了した、または未完了のまま予定を過ぎた
+    function wasLate(item, iso) {
+      if (!item.time) return false;
+      if (!item.done) return lateStatus(item, iso);
+      if (!item.doneAt) return false;
+      const d = new Date(item.doneAt);
+      const doneISO = toISO(d);
+      return doneISO > iso || (doneISO === iso && `${z2(d.getHours())}:${z2(d.getMinutes())}` > item.time);
+    }
+
+    /* ---------- timer ---------- */
+
+    // 計測は同時に 1 件だけ。state.running = { date, kind: "item" | "log", id, since }
+    function entriesOf(day, kind) {
+      return kind === "log" ? day.logs : day.items;
+    }
+    function entryOf(ref) {
+      const day = state.days[ref.date];
+      return day ? entriesOf(day, ref.kind).find((e) => e.id === ref.id) || null : null;
+    }
+    function isRunning(kind, id, date = currentDate) {
+      const r = state.running;
+      return !!r && r.kind === kind && r.id === id && r.date === date;
+    }
+    function spentOf(entry, kind, date) {
+      let ms = entry.spentMs || 0;
+      if (isRunning(kind, entry.id, date)) ms += Math.max(0, Date.now() - state.running.since);
+      return ms;
+    }
+    function stopTimer() {
+      const r = state.running;
+      if (!r) return;
+      const e = entryOf(r);
+      if (e) e.spentMs = (e.spentMs || 0) + Math.max(0, Date.now() - r.since);
+      if (state.days[r.date]) state.days[r.date].touched = true;
+      state.running = null;
+    }
+    function toggleTimer(kind, id) {
+      const wasOn = isRunning(kind, id);
+      stopTimer();
+      if (!wasOn) state.running = { date: currentDate, kind, id, since: Date.now() };
+      commit();
+    }
+    function editSpent(kind, id) {
+      const day = ensureDay(currentDate);
+      const e = entriesOf(day, kind).find((x) => x.id === id);
+      if (!e) return;
+      const v = prompt("所要時間（分）", String(Math.round(spentOf(e, kind, currentDate) / 60000)));
+      if (v == null) return;
+      const n = Number(v.trim());
+      if (!v.trim() || !Number.isFinite(n) || n < 0) { toast("0 以上の数字で入力してください"); return; }
+      if (isRunning(kind, id)) state.running = null;
+      e.spentMs = Math.round(n * 60000);
+      commit(day);
+    }
+    function timeBreakdown(day, date) {
+      const b = { routine: 0, adHoc: 0, log: 0 };
+      for (const i of day.items) b[i.adHoc ? "adHoc" : "routine"] += spentOf(i, "item", date);
+      for (const l of day.logs) b.log += spentOf(l, "log", date);
+      return { ...b, total: b.routine + b.adHoc + b.log };
+    }
+    function fmtDur(ms) {
+      const m = Math.floor(ms / 60000);
+      const hr = Math.floor(m / 60);
+      return hr ? `${hr}時間${z2(m % 60)}分` : `${m}分`;
+    }
+    function fmtClockDur(ms) {
+      const s = Math.floor(ms / 1000);
+      return `${Math.floor(s / 3600)}:${z2(Math.floor(s / 60) % 60)}:${z2(s % 60)}`;
+    }
+    function timerControls(kind, entry, done) {
+      const running = isRunning(kind, entry.id);
+      const ms = spentOf(entry, kind, currentDate);
+      return [
+        done && !running ? null : h("button", {
+          class: "timer-btn" + (running ? " on" : ""),
+          text: running ? "■ 停止" : "▶ 計測",
+          "aria-pressed": String(running),
+          onclick: () => toggleTimer(kind, entry.id),
+        }),
+        ms > 0 || running ? h("button", {
+          class: "spent",
+          text: running ? fmtClockDur(ms) : fmtDur(ms),
+          "data-live": running ? "1" : null,
+          title: "所要時間を直す",
+          onclick: () => editSpent(kind, entry.id),
+        }) : null,
+      ];
+    }
+
+    /* ---------- render ---------- */
+
+    function toast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove("show"), 2400);
+    }
+
+    function render() {
+      const isToday = currentDate === todayISO();
+      if (isToday) carryOver(currentDate);
+
+      document.getElementById("tabDaily").setAttribute("aria-selected", String(view === "daily"));
+      document.getElementById("tabSummary").setAttribute("aria-selected", String(view === "summary"));
+      document.getElementById("dailyView").hidden = view !== "daily";
+      document.getElementById("summaryView").hidden = view !== "summary";
+      document.getElementById("datePicker").value = currentDate;
+      const label = document.getElementById("dateLabel");
+
+      if (view === "summary") {
+        label.textContent = periodLabel(periodRange(currentDate, period));
+        renderSummary();
+        return;
+      }
+
+      const day = ensureDay(currentDate);
+      label.textContent = fmtJP(currentDate);
+      if (isToday) label.append(h("span", { class: "today-chip", text: "TODAY" }));
+      document.getElementById("note").value = day.note;
+      document.getElementById("next").value = day.next;
+
+      const inbound = document.getElementById("inboundPanel");
+      inbound.hidden = !day.inbound;
+      if (day.inbound) {
+        document.getElementById("inboundFrom").textContent = `${fmtJP(day.inbound.from)} の「明日の先頭タスク」より`;
+        document.getElementById("inboundText").textContent = day.inbound.text;
+      }
+
+      const p = progressOf(day);
+      const late = day.items.filter((i) => lateStatus(i, currentDate)).length;
+      document.getElementById("progressNum").innerHTML = `${p.done}<small>/${p.total}</small>`;
+      document.getElementById("progressPct").textContent = `${p.pct}%`;
+      document.getElementById("meterFill").style.width = `${p.pct}%`;
+      const lateEl = document.getElementById("lateCount");
+      lateEl.textContent = late ? `予定時刻を過ぎた未完了 ${late} 件` : "遅れなし";
+      lateEl.className = late ? "warn" : "";
+      document.getElementById("openLogs").textContent = String(day.logs.filter((l) => l.status === "open").length);
+      document.getElementById("streak").textContent = String(streakCount());
+      document.getElementById("todayMark").textContent = isToday ? "表示中: 今日" : "表示中: 過去または未来の日";
+      document.getElementById("stamp").classList.toggle("show", p.total > 0 && p.done === p.total);
+      renderRunningBox();
+
+      const tb = timeBreakdown(day, currentDate);
+      document.getElementById("timeTotal").textContent = `合計 ${fmtDur(tb.total)}`;
+      document.getElementById("timeBreakdown").replaceChildren(...BREAKDOWN_LABELS.map(([k, name]) =>
+        h("div", { class: "bd-row" },
+          h("span", { text: name }),
+          h("span", { class: "num", text: fmtDur(tb[k]) }),
+          h("div", { class: "bar" }, h("span", { style: `width:${tb.total ? Math.round((tb[k] / tb.total) * 100) : 0}%` })))));
+
+      const root = document.getElementById("sections");
+      root.replaceChildren();
+      for (const s of SECTIONS) root.append(renderSection(s, day));
+      renderLogPanel(day);
+      renderTemplateEditor();
+    }
+
+    function renderSection(s, day) {
+      const items = sortItems(day.items.filter((i) => i.section === s.id));
+      const body = h("div", { class: "panel-b" });
+      if (!items.length && s.id !== "adHoc") {
+        body.append(h("p", { class: "sub", style: "margin-top:0", text: "項目なし。下の欄から追加するか、右のテンプレを編集してください。" }));
+      }
+      for (const item of items) body.append(renderItem(item));
+      body.append(renderComposer(s.id));
+      return h("section", { class: "panel" },
+        h("div", { class: "section-h" },
+          h("h2", { text: s.title }),
+          h("span", { class: "when", text: `${s.when} · ${items.filter((i) => i.done).length}/${items.length}` })),
+        body);
+    }
+
+    function renderItem(item) {
+      const late = lateStatus(item, currentDate);
+      const chips = [];
+      if (item.time) chips.push(h("span", { class: "chip" + (late ? " late" : ""), text: late ? `予定 ${item.time} · 遅れ` : `予定 ${item.time}` }));
+      if (item.carriedFrom) chips.push(h("span", { class: "chip carry", text: `繰越 ${item.carriedFrom.slice(5).replace("-", "/")}` }));
+      if (item.carriedTo) chips.push(h("span", { class: "chip carry", text: `→ ${item.carriedTo.slice(5).replace("-", "/")} へ繰越` }));
+      if (item.recurKind !== "daily" && item.templateId) chips.push(h("span", { class: "chip recur", text: "定期" }));
+      chips.push(h("span", { text: item.adHoc ? "当日のみ" : "定型" }));
+      if (item.doneAt) chips.push(h("span", { text: `完了 ${fmtClock(item.doneAt)}` }));
+      chips.push(...timerControls("item", item, item.done));
+
+      const cls = ["item", item.done && "done", late && "late", isRunning("item", item.id) && "running"];
+      return h("div", { class: cls.filter(Boolean).join(" ") },
+        h("button", {
+          class: "check",
+          "aria-pressed": String(item.done),
+          "aria-label": `${item.title}を${item.done ? "未完了に戻す" : "完了にする"}`,
+          html: item.done ? checkSvg() : "",
+          onclick: () => toggleItem(item.id),
+        }),
+        h("div", {}, h("div", { class: "title", text: item.title }), h("div", { class: "item-meta" }, chips)),
+        h("div", { class: "item-actions" },
+          h("button", { class: "tiny", text: "編集", onclick: () => editItem(item.id) }),
+          h("button", { class: "tiny", text: "削除", onclick: () => deleteItem(item.id) })));
+    }
+
+    function renderRunningBox() {
+      const box = document.getElementById("runningBox");
+      box.replaceChildren();
+      const r = state.running;
+      if (!r) return;
+      const e = entryOf(r);
+      if (!e) { state.running = null; save(); return; }
+      box.append(h("div", { class: "running-box", role: "status" },
+        h("div", { class: "item-meta", style: "color:inherit;margin:0", text: `計測中 · ${fmtJP(r.date)}` }),
+        h("div", { class: "what", text: r.kind === "log" ? e.event : e.title }),
+        h("div", { class: "clock", "data-live": "1", text: fmtClockDur(spentOf(e, r.kind, r.date)) }),
+        h("button", { text: "停止", onclick: () => { stopTimer(); save(); render(); } })));
+    }
+
+    function checkSvg() {
+      return `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg>`;
+    }
+
+    function renderComposer(sectionId) {
+      const isAdHoc = sectionId === "adHoc";
+      const form = h("form", { class: "composer" },
+        h("input", { class: "field", name: "title", placeholder: "この枠に項目を追加", autocomplete: "off", "aria-label": "項目名" }),
+        h("input", { class: "field time", type: "time", name: "time", "aria-label": "予定時刻（任意）" }),
+        h("button", { class: "text-btn", type: "submit", text: "追加" }),
+        isAdHoc ? null : h("label", { class: "opts" },
+          h("input", { type: "checkbox", name: "repeat", checked: true }),
+          "毎日のテンプレにも入れる"));
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const f = form.elements;
+        const title = f.title.value.trim();
+        if (!title) return;
+        addItem(sectionId, title, f.time.value, !isAdHoc && f.repeat.checked);
+      });
+      return form;
+    }
+
+    function renderLogPanel(day) {
+      const panel = document.getElementById("logPanel");
+      const logs = [...day.logs].sort((a, b) => a.at.localeCompare(b.at));
+      const open = logs.filter((l) => l.status === "open").length;
+      const list = h("div", { class: "log-list" });
+      if (!logs.length) list.append(h("p", { class: "sub", style: "margin-top:0", text: "障害・問い合わせ・作業依頼など、チェックリスト外の対応をここに残します。" }));
+      for (const log of logs) list.append(log.id === editingLogId ? renderLogEditor(log) : renderLog(log));
+
+      panel.replaceChildren(
+        h("div", { class: "section-h" },
+          h("h2", { text: "対応ログ" }),
+          h("span", { class: "when", text: `対応中 ${open} · 完了 ${logs.length - open}` })),
+        h("div", { class: "panel-b" }, list,
+          logForm(null, (fields) => {
+            ensureDay(currentDate).logs.push(newLog(fields));
+            commit();
+          })));
+    }
+
+    function renderLog(log) {
+      const meta = [];
+      if (log.carriedFrom) meta.push(h("span", { class: "chip carry", text: `繰越 ${log.carriedFrom.slice(5).replace("-", "/")}` }));
+      if (log.carriedTo) meta.push(h("span", { class: "chip carry", text: `→ ${log.carriedTo.slice(5).replace("-", "/")} へ繰越` }));
+      meta.push(...timerControls("log", log, log.status === "done"));
+      return h("div", { class: "log" + (isRunning("log", log.id) ? " running" : "") },
+        h("div", { class: "log-at", text: log.at }),
+        h("div", {},
+          h("div", { class: "item-meta", style: "margin:0 0 3px" },
+            h("button", {
+              class: "status-btn" + (log.status === "done" ? " done" : ""),
+              text: log.status === "done" ? "完了" : "対応中",
+              title: "状態を切り替える",
+              onclick: () => updateLog(log.id, { status: log.status === "done" ? "open" : "done" }),
+            }),
+            meta),
+          h("div", { class: "log-event", text: log.event }),
+          log.action ? h("div", { class: "log-action", text: log.action }) : null),
+        h("div", { class: "item-actions" },
+          h("button", { class: "tiny", text: "編集", onclick: () => { editingLogId = log.id; render(); } }),
+          h("button", { class: "tiny", text: "削除", onclick: () => deleteLog(log.id) })));
+    }
+
+    function renderLogEditor(log) {
+      return h("div", { class: "log editing" },
+        logForm(log, (fields) => { editingLogId = null; updateLog(log.id, fields); },
+          () => { editingLogId = null; render(); }));
+    }
+
+    function logForm(log, onSubmit, onCancel) {
+      const form = h("form", { class: "log-form" },
+        h("div", { class: "log-form-row" },
+          h("input", { class: "field time", type: "time", name: "at", value: log?.at || nowHM(), "aria-label": "発生時刻", required: true }),
+          h("input", { class: "field", name: "event", value: log?.event || "", placeholder: "事象（例: API の 5xx が増加）", autocomplete: "off", "aria-label": "事象", required: true }),
+          h("select", { class: "field", name: "status", "aria-label": "状態" },
+            h("option", { value: "open", text: "対応中" }),
+            h("option", { value: "done", text: "完了" }))),
+        h("textarea", { class: "field", name: "action", rows: "2", placeholder: "対応内容・次のアクション", "aria-label": "対応内容" }),
+        h("div", { class: "row-btns", style: "margin-top:0" },
+          h("button", { class: log ? "primary-btn" : "text-btn", type: "submit", text: log ? "保存" : "ログを記録" }),
+          onCancel ? h("button", { class: "ghost-btn", type: "button", text: "取消", onclick: onCancel }) : null));
+      const f = form.elements;
+      f.status.value = log?.status || "open";
+      f.action.value = log?.action || "";
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const event = f.event.value.trim();
+        if (!event) return;
+        onSubmit({ at: f.at.value || nowHM(), event, action: f.action.value.trim(), status: f.status.value });
+      });
+      return form;
+    }
+
+    function renderTemplateEditor() {
+      const el = document.getElementById("templateEditor");
+      el.replaceChildren();
+      for (const s of ROUTINE_SECTIONS) {
+        const list = h("div", { class: "tpl-list" });
+        for (const t of state.template[s.id]) list.append(renderTemplateRow(s, t));
+        el.append(h("div", { class: "tpl-group" },
+          h("div", { class: "item-meta", style: "margin-bottom:6px", text: s.title }),
+          list,
+          h("button", {
+            class: "tiny",
+            text: "+ 定型を追加",
+            onclick: () => {
+              const title = prompt(`${s.title}の定型項目`);
+              if (!title || !title.trim()) return;
+              state.template[s.id].push(normTemplate({ title: title.trim() }));
+              save();
+              render();
+            },
+          })));
+      }
+    }
+
+    function renderTemplateRow(s, t) {
+      const persist = () => save();
+      const title = h("input", { class: "field", value: t.title, "aria-label": "項目名" });
+      title.addEventListener("change", () => { t.title = title.value.trim() || t.title; title.value = t.title; persist(); });
+
+      const time = h("input", { class: "field time", type: "time", value: t.time, "aria-label": "予定時刻" });
+      time.addEventListener("change", () => { t.time = time.value; persist(); });
+
+      const kind = h("select", { class: "field", "aria-label": "繰り返し" },
+        h("option", { value: "daily", text: "毎日" }),
+        h("option", { value: "weekly", text: "毎週" }),
+        h("option", { value: "monthly", text: "毎月" }));
+      kind.value = t.recur.kind;
+
+      const value = h("select", { class: "field", "aria-label": "曜日または日付" });
+      const fillValue = () => {
+        value.replaceChildren();
+        value.hidden = t.recur.kind === "daily";
+        if (t.recur.kind === "weekly") {
+          [...WEEK].forEach((w, i) => value.append(h("option", { value: String(i), text: `${w}曜` })));
+        } else if (t.recur.kind === "monthly") {
+          for (let d = 1; d <= 31; d++) value.append(h("option", { value: String(d), text: `${d}日` }));
+          value.append(h("option", { value: "0", text: "末日" }));
+        }
+        value.value = String(t.recur.value);
+      };
+      fillValue();
+      kind.addEventListener("change", () => {
+        t.recur = normRecur({ kind: kind.value, value: kind.value === "monthly" ? 1 : kind.value === "weekly" ? 1 : 0 });
+        fillValue();
+        persist();
+      });
+      value.addEventListener("change", () => { t.recur.value = Number(value.value); persist(); });
+
+      const del = h("button", {
+        class: "tiny",
+        text: "削除",
+        onclick: () => {
+          state.template[s.id] = state.template[s.id].filter((x) => x.id !== t.id);
+          save();
+          render();
+        },
+      });
+      return h("div", { class: "tpl-row" }, title, h("div", { class: "line" }, time, kind, value, del));
+    }
+
+    /* ---------- actions ---------- */
+
+    function findItem(id) {
+      return ensureDay(currentDate).items.find((i) => i.id === id);
+    }
+    function toggleItem(id) {
+      const item = findItem(id);
+      if (!item) return;
+      item.done = !item.done;
+      item.doneAt = item.done ? new Date().toISOString() : null;
+      if (item.done && isRunning("item", id)) stopTimer();
+      commit();
+    }
+    function editItem(id) {
+      const item = findItem(id);
+      if (!item) return;
+      const next = prompt("項目名", item.title);
+      if (next == null || !next.trim()) return;
+      item.title = next.trim();
+      commit();
+    }
+    function deleteItem(id) {
+      const day = ensureDay(currentDate);
+      if (isRunning("item", id)) state.running = null;
+      day.items = day.items.filter((i) => i.id !== id);
+      commit(day);
+    }
+    function addItem(section, title, time, toTemplate) {
+      const day = ensureDay(currentDate);
+      const rec = newItem({ section, title, time, adHoc: !toTemplate });
+      if (toTemplate) {
+        const t = normTemplate({ title, time });
+        state.template[section].push(t);
+        rec.templateId = t.id;
+      }
+      day.items.push(rec);
+      commit(day);
+    }
+    function updateLog(id, fields) {
+      const day = ensureDay(currentDate);
+      const log = day.logs.find((l) => l.id === id);
+      if (!log) return;
+      Object.assign(log, fields);
+      if (log.status === "done" && isRunning("log", id)) stopTimer();
+      commit(day);
+    }
+    function deleteLog(id) {
+      if (!confirm("このログを削除しますか？")) return;
+      const day = ensureDay(currentDate);
+      if (isRunning("log", id)) state.running = null;
+      day.logs = day.logs.filter((l) => l.id !== id);
+      commit(day);
+    }
+
+    function handoverText() {
+      const day = ensureDay(currentDate);
+      const p = progressOf(day);
+      const late = day.items.filter((i) => lateStatus(i, currentDate)).length;
+      const tb = timeBreakdown(day, currentDate);
+      const lines = [
+        `【引き継ぎ】${fmtJP(currentDate)}`,
+        `チェック ${p.done}/${p.total}（${p.pct}%）・遅れ ${late} 件`,
+        `所要時間 ${fmtDur(tb.total)}（${BREAKDOWN_LABELS.map(([k, name]) => `${name} ${fmtDur(tb[k])}`).join("・")}）`,
+        "",
+      ];
+
+      const undone = sortItems(day.items.filter((i) => !i.done));
+      if (undone.length) {
+        lines.push(`■ 未完了（${undone.length}）`);
+        for (const i of undone) {
+          const tags = [i.time && `予定 ${i.time}`, lateStatus(i, currentDate) && "遅れ"].filter(Boolean);
+          lines.push(`- [${SECTION_TITLE[i.section]}] ${i.title}${tags.length ? `（${tags.join("・")}）` : ""}`);
+        }
+        lines.push("");
+      }
+      const logs = [...day.logs].sort((a, b) => a.at.localeCompare(b.at));
+      const openLogs = logs.filter((l) => l.status === "open");
+      const doneLogs = logs.filter((l) => l.status === "done");
+      if (openLogs.length) {
+        lines.push(`■ 対応中（${openLogs.length}）`);
+        for (const l of openLogs) {
+          lines.push(`- ${l.at} ${l.event}`);
+          if (l.action) lines.push(...l.action.split("\n").map((s) => `  ${s}`));
+        }
+        lines.push("");
+      }
+      if (doneLogs.length) {
+        lines.push(`■ 本日完了した対応（${doneLogs.length}）`);
+        for (const l of doneLogs) lines.push(`- ${l.at} ${l.event}${l.action ? ` → ${l.action.replace(/\n/g, " / ")}` : ""}`);
+        lines.push("");
+      }
+      if (day.next.trim()) lines.push("■ 明日の先頭タスク", day.next.trim(), "");
+      if (day.note.trim()) lines.push("■ メモ", day.note.trim(), "");
+      return lines.join("\n").trimEnd();
+    }
+
+    function copyHandover() {
+      navigator.clipboard.writeText(handoverText()).then(
+        () => toast("引き継ぎメモをコピーしました"),
+        () => toast("コピーに失敗しました")
+      );
+    }
+
+    /* ---------- summary ---------- */
+
+    function periodRange(anchor, kind) {
+      const d = parseISO(anchor);
+      if (kind === "week") {
+        const start = addDays(anchor, -((d.getDay() + 6) % 7)); // 月曜始まり
+        return { start, end: addDays(start, 6) };
+      }
+      return {
+        start: toISO(new Date(d.getFullYear(), d.getMonth(), 1)),
+        end: toISO(new Date(d.getFullYear(), d.getMonth() + 1, 0)),
+      };
+    }
+    function datesIn({ start, end }) {
+      const out = [];
+      for (let c = start; c <= end; c = addDays(c, 1)) out.push(c);
+      return out;
+    }
+    function periodLabel(range) {
+      if (period === "month") return `${range.start.slice(0, 4)}年${Number(range.start.slice(5, 7))}月`;
+      return `${fmtJP(range.start)} – ${fmtJP(range.end).slice(5)}`;
+    }
+    function shiftAnchor(iso, dir) {
+      if (view !== "summary") return addDays(iso, dir);
+      if (period === "week") return addDays(iso, dir * 7);
+      const d = parseISO(iso);
+      return toISO(new Date(d.getFullYear(), d.getMonth() + dir, 1));
+    }
+
+    // 記録した日（touched）だけを集計する。未来の日は含めない。
+    function summarize(range) {
+      const today = todayISO();
+      const rows = [];
+      const undone = new Map();
+      const late = new Map();
+      const bump = (map, i) => {
+        const key = `${i.section}\u0000${i.title}`;
+        const cur = map.get(key) || { title: i.title, section: i.section, count: 0 };
+        cur.count += 1;
+        map.set(key, cur);
+      };
+      const time = { routine: 0, adHoc: 0, log: 0, total: 0 };
+      let recorded = 0, rateSum = 0, completeDays = 0, lateTotal = 0, newLogs = 0, openLogs = 0;
+
+      for (const iso of datesIn(range)) {
+        const day = state.days[iso];
+        if (iso > today || !day?.touched) {
+          rows.push({ iso, empty: true, future: iso > today });
+          continue;
+        }
+        recorded += 1;
+        const p = progressOf(day);
+        rateSum += p.pct;
+        if (p.total && p.done === p.total) completeDays += 1;
+        const tb = timeBreakdown(day, iso);
+        for (const k of Object.keys(time)) time[k] += tb[k];
+        const lateItems = day.items.filter((i) => wasLate(i, iso));
+        lateTotal += lateItems.length;
+        for (const i of lateItems) bump(late, i);
+        if (iso < today) for (const i of day.items) if (!i.done) bump(undone, i);
+        const fresh = day.logs.filter((l) => !l.carriedFrom).length;
+        newLogs += fresh;
+        openLogs = day.logs.filter((l) => l.status === "open").length; // 期間内で最後に記録した日の未解決数
+        rows.push({ iso, p, late: lateItems.length, time: tb.total, logs: day.logs.length });
+      }
+      const top = (map) => [...map.values()].sort((a, b) => b.count - a.count).slice(0, 5);
+      return {
+        rows,
+        recorded,
+        completeDays,
+        avgPct: recorded ? Math.round(rateSum / recorded) : 0,
+        lateTotal,
+        time,
+        newLogs,
+        openLogs,
+        topUndone: top(undone),
+        topLate: top(late),
+      };
+    }
+
+    function renderSummary() {
+      const range = periodRange(currentDate, period);
+      const s = summarize(range);
+      const root = document.getElementById("summaryView");
+      const kpi = (k, v, unit, d) => h("div", { class: "kpi" },
+        h("div", { class: "k", text: k }),
+        h("div", { class: "v" }, String(v), unit ? h("small", { text: unit }) : null),
+        d ? h("div", { class: "d", text: d }) : null);
+      const seg = h("div", { class: "seg", role: "group", "aria-label": "期間" },
+        ...[["week", "週"], ["month", "月"]].map(([k, name]) => h("button", {
+          "aria-pressed": String(period === k),
+          text: name,
+          onclick: () => { period = k; render(); },
+        })));
+
+      const bar = h("div", { class: "summary-bar" },
+        h("div", { style: "display:flex;gap:12px;align-items:center;flex-wrap:wrap" }, seg,
+          h("span", { class: "sub", style: "margin:0", text: "前後の矢印で期間を移動。行を押すとその日を開きます。" })),
+        h("div", { class: "row-btns", style: "margin:0" },
+          h("button", { class: "ghost-btn", text: "CSV で書き出す", onclick: () => exportCsv(range) }),
+          h("button", { class: "ghost-btn", text: "印刷", onclick: () => window.print() })));
+
+      if (!s.recorded) {
+        root.replaceChildren(bar, h("div", { class: "panel" }, h("div", { class: "panel-b" },
+          h("p", { class: "sub", style: "margin:0", text: "この期間の記録はまだありません。日次画面でチェックやログを付けると、ここに集計されます。試すときは「データ」パネルのサンプルデータを使えます。" }))));
+        return;
+      }
+
+      const kpis = h("div", { class: "kpis" },
+        kpi("記録日数", s.recorded, "日", `全項目完了 ${s.completeDays} 日`),
+        kpi("平均完了率", s.avgPct, "%"),
+        kpi("遅れ", s.lateTotal, "件", "予定時刻を過ぎて完了・未完了"),
+        kpi("所要時間", fmtDur(s.time.total), "", `1日平均 ${fmtDur(s.time.total / s.recorded)}`),
+        kpi("対応ログ", s.newLogs, "件", `未解決 ${s.openLogs} 件`));
+
+      const tbody = h("tbody");
+      for (const r of s.rows) {
+        const d = parseISO(r.iso);
+        const dateText = `${d.getMonth() + 1}/${d.getDate()}（${WEEK[d.getDay()]}）`;
+        if (r.empty) {
+          tbody.append(h("tr", { class: "empty" },
+            h("td", { text: dateText }), h("td", { colspan: "5", text: r.future ? "—" : "記録なし" })));
+          continue;
+        }
+        const open = () => { currentDate = r.iso; view = "daily"; render(); };
+        tbody.append(h("tr", { class: "clickable", tabindex: "0", onclick: open, onkeydown: (e) => { if (e.key === "Enter") open(); } },
+          h("td", { text: dateText }),
+          h("td", { class: "n", text: `${r.p.done}/${r.p.total}` }),
+          h("td", {}, h("div", { class: "rate" },
+            h("div", { class: "meter" }, h("span", { style: `width:${r.p.pct}%` })),
+            h("span", { class: "n", text: `${r.p.pct}%` }))),
+          h("td", { class: "n", text: r.late ? String(r.late) : "–" }),
+          h("td", { class: "n", text: fmtDur(r.time) }),
+          h("td", { class: "n", text: String(r.logs) })));
+      }
+      const table = h("table", { class: "days" },
+        h("thead", {}, h("tr", {},
+          h("th", { text: "日付" }), h("th", { class: "n", text: "チェック" }), h("th", { text: "完了率" }),
+          h("th", { class: "n", text: "遅れ" }), h("th", { class: "n", text: "時間" }), h("th", { class: "n", text: "ログ" }))),
+        tbody);
+
+      const rank = (list, unit, emptyText) => list.length
+        ? h("ol", { class: "rank" }, ...list.map((x) => h("li", {},
+            h("span", {}, x.title, h("span", { class: "s", text: SECTION_TITLE[x.section] })),
+            h("span", { class: "c", text: `${x.count} ${unit}` }))))
+        : h("p", { class: "sub", style: "margin:0", text: emptyText });
+      const panel = (title, body, note) => h("div", { class: "panel" },
+        h("div", { class: "panel-h" }, title, note ? h("span", { class: "item-meta", text: note }) : null),
+        h("div", { class: "panel-b" }, body));
+
+      const breakdown = h("div", { class: "breakdown" }, ...BREAKDOWN_LABELS.map(([k, name]) =>
+        h("div", { class: "bd-row" },
+          h("span", { text: name }),
+          h("span", { class: "num", text: fmtDur(s.time[k]) }),
+          h("div", { class: "bar" }, h("span", { style: `width:${s.time.total ? Math.round((s.time[k] / s.time.total) * 100) : 0}%` })))));
+
+      root.replaceChildren(bar, kpis,
+        h("div", { class: "summary-grid" },
+          panel("日別", h("div", { class: "table-wrap" }, table)),
+          h("div", { class: "stack" },
+            panel("時間の内訳", breakdown),
+            panel("よく遅れる項目", rank(s.topLate, "回", "遅れはありません。"), "上位 5"),
+            panel("よく残る項目", rank(s.topUndone, "日", "未完了のまま終わった項目はありません。"), "今日を除く"))));
+    }
+
+    /* ---------- export / import ---------- */
+
+    function download(filename, text, type) {
+      const url = URL.createObjectURL(new Blob([text], { type }));
+      const a = h("a", { href: url, download: filename });
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    function csvCell(v) {
+      let s = String(v ?? "");
+      if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`; // 表計算ソフトで式として解釈されないように
+      return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    }
+    function csvFor(range) {
+      const rows = [["日付", "種別", "区分", "内容", "予定・発生時刻", "状態", "完了時刻", "所要分", "対応内容", "繰越元"]];
+      for (const iso of datesIn(range)) {
+        const day = state.days[iso];
+        if (!day?.touched) continue;
+        for (const i of sortItems(day.items)) {
+          rows.push([iso, "チェック", SECTION_TITLE[i.section], i.title, i.time, i.done ? "完了" : "未完了",
+            i.doneAt ? fmtClock(i.doneAt) : "", Math.round(spentOf(i, "item", iso) / 60000), "", i.carriedFrom || ""]);
+        }
+        for (const l of [...day.logs].sort((a, b) => a.at.localeCompare(b.at))) {
+          rows.push([iso, "対応ログ", "", l.event, l.at, l.status === "done" ? "完了" : "対応中",
+            "", Math.round(spentOf(l, "log", iso) / 60000), l.action, l.carriedFrom || ""]);
+        }
+      }
+      return "\uFEFF" + rows.map((r) => r.map(csvCell).join(",")).join("\r\n") + "\r\n";
+    }
+    function exportCsv(range) {
+      download(`ops-ledger_${range.start}_${range.end}.csv`, csvFor(range), "text/csv;charset=utf-8");
+      toast("CSV を書き出しました");
+    }
+    function exportJson() {
+      download(`ops-ledger-backup_${todayISO()}.json`, JSON.stringify(state, null, 2), "application/json");
+      toast("JSON を書き出しました");
+    }
+    function importJson(text) {
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        toast("JSON として読めませんでした");
+        return false;
+      }
+      if (!parsed || typeof parsed !== "object" || !parsed.template || !parsed.days || typeof parsed.days !== "object") {
+        toast("この台帳の書き出しファイルではないようです");
+        return false;
+      }
+      const count = Object.keys(parsed.days).length;
+      if (!confirm(`${count} 日分の記録で、今の記録とテンプレをすべて置き換えます。よろしいですか？`)) return false;
+      state = migrate(parsed);
+      save();
+      render();
+      toast(`${count} 日分を読み込みました`);
+      return true;
+    }
+    const hasRecords = () => Object.values(state.days).some((d) => d.touched);
+
+    // 見た人がすぐ試せるように、直近の平日 3 週間ぶんの記録を作る（乱数は固定なので毎回同じ）
+    function buildSample() {
+      const sample = seedState();
+      const saved = state;
+      state = sample; // snapshotFromTemplate が state.template を使う
+      let seed = 20261024;
+      const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+      const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
+      const events = [
+        ["API の 5xx が一時的に増加", "LB 配下の 1 台を切り離して再起動。30 分監視して収束"],
+        ["夜間バッチの遅延", "ジョブを再実行して完了。原因はテーブルのロック待ち"],
+        ["ディスク使用率が 85% を超過", "古いログをローテーションして 62% まで回復"],
+        ["権限追加の依頼", "申請内容を確認して付与。申請者に連絡済み"],
+        ["監視の誤検知", "閾値の見直し案をチケット化"],
+        ["VPN に接続できないとの問い合わせ", "クライアント証明書の期限切れ。再発行を案内"],
+      ];
+      const extras = ["ベンダー問い合わせの回答を確認する", "手順書を更新する", "定例会の資料を準備する", "アカウント棚卸しを進める"];
+      const today = todayISO();
+      try {
+        for (let back = 21; back >= 1; back--) {
+          const iso = addDays(today, -back);
+          const dow = parseISO(iso).getDay();
+          if (dow === 0 || dow === 6) continue;
+          const items = snapshotFromTemplate(iso);
+          if (rnd() < 0.5) items.push(newItem({ section: "adHoc", title: pick(extras), adHoc: true }));
+          for (const it of items) {
+            // 「午後の優先順位」は残りがち、日中の項目は遅れがち、という傾向を持たせる
+            const doneRate = it.title.includes("優先順位") ? 0.55 : 0.92;
+            it.spentMs = Math.round(3 + rnd() * 22) * 60000;
+            if (rnd() >= doneRate) continue;
+            const [hh, mm] = (it.time || "16:00").split(":").map(Number);
+            const slip = it.section === "mid" ? 30 : 3;
+            const at = parseISO(iso);
+            at.setHours(0, hh * 60 + mm + Math.round(rnd() * (slip + 15)) - 15, 0, 0);
+            it.done = true;
+            it.doneAt = at.toISOString();
+          }
+          const logs = [];
+          for (let k = Math.floor(rnd() * 3); k > 0; k--) {
+            const [event, action] = pick(events);
+            logs.push(newLog({
+              at: `${z2(9 + Math.floor(rnd() * 8))}:${z2(Math.floor(rnd() * 60))}`,
+              event, action, status: "done",
+              spentMs: Math.round(10 + rnd() * 50) * 60000,
+            }));
+          }
+          sample.days[iso] = { note: "", next: "", inbound: null, logs, items, touched: true, carryChecked: true };
+        }
+        // 直近の記録日に引き継ぎの例を置く。今日を開くと繰越として表示される。
+        const last = Object.keys(sample.days).sort().pop();
+        if (last) {
+          const d = sample.days[last];
+          d.next = "DB サーバのパッチ適用の作業日を確定する";
+          d.logs.push(newLog({ at: "16:40", event: "ストレージの応答遅延", action: "ベンダーに調査を依頼済み。回答待ち", status: "open", spentMs: 25 * 60000 }));
+          d.items.push(newItem({ section: "adHoc", title: "ベンダーの回答を確認する", time: "10:00", adHoc: true }));
+        }
+      } finally {
+        state = saved;
+      }
+      return sample;
+    }
+
+    /* ---------- wiring ---------- */
+
+    function goTo(iso) {
+      currentDate = iso;
+      editingLogId = null;
+      render();
+    }
+    function setView(v) {
+      view = v;
+      editingLogId = null;
+      render();
+    }
+
+    document.getElementById("tabDaily").addEventListener("click", () => setView("daily"));
+    document.getElementById("tabSummary").addEventListener("click", () => setView("summary"));
+    document.getElementById("prevDay").addEventListener("click", () => goTo(shiftAnchor(currentDate, -1)));
+    document.getElementById("nextDay").addEventListener("click", () => goTo(shiftAnchor(currentDate, 1)));
+    document.getElementById("todayBtn").addEventListener("click", () => goTo(todayISO()));
+    document.getElementById("datePicker").addEventListener("change", (e) => {
+      if (e.target.value) goTo(e.target.value);
+    });
+    for (const key of ["note", "next"]) {
+      document.getElementById(key).addEventListener("input", (e) => {
+        const day = ensureDay(currentDate);
+        day[key] = e.target.value;
+        day.touched = true;
+        save();
+      });
+    }
+    document.getElementById("copyHandover").addEventListener("click", copyHandover);
+    document.getElementById("printBtn").addEventListener("click", () => window.print());
+    document.getElementById("applyTemplate").addEventListener("click", () => {
+      if (!confirm("今日の未完了の定型を、現在のテンプレで置き換えます。当日追加・繰越・完了済みは残します。")) return;
+      const day = ensureDay(currentDate);
+      const keep = day.items.filter((i) => i.adHoc || i.done);
+      const existingTitles = new Set(keep.map((i) => i.title));
+      const fresh = snapshotFromTemplate(currentDate).filter((i) => !existingTitles.has(i.title));
+      day.items = [...keep, ...fresh];
+      commit(day);
+      toast("テンプレを再適用しました");
+    });
+    document.getElementById("resetDefaults").addEventListener("click", () => {
+      if (!confirm("定型テンプレを初期状態に戻します。各日の記録は消えません。")) return;
+      state.template = cloneTemplate(DEFAULT_TEMPLATE);
+      save();
+      render();
+    });
+
+    document.getElementById("exportJson").addEventListener("click", exportJson);
+    const importFile = document.getElementById("importFile");
+    document.getElementById("importJson").addEventListener("click", () => importFile.click());
+    importFile.addEventListener("change", async () => {
+      const file = importFile.files[0];
+      importFile.value = "";
+      if (file) importJson(await file.text());
+    });
+    document.getElementById("loadSample").addEventListener("click", () => {
+      if (hasRecords() && !confirm("今の記録とテンプレを、サンプルデータで置き換えます。必要なら先に JSON で書き出してください。")) return;
+      state = buildSample();
+      save();
+      currentDate = todayISO();
+      editingLogId = null;
+      render();
+      toast("サンプルデータを入れました。「振り返り」も見てみてください");
+    });
+    document.getElementById("wipeData").addEventListener("click", () => {
+      if (!confirm("すべての記録とテンプレを消去して初期状態に戻します。元に戻せません。")) return;
+      state = seedState();
+      save();
+      currentDate = todayISO();
+      editingLogId = null;
+      render();
+      toast("消去しました");
+    });
+
+    const isTyping = () => ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName);
+
+    document.addEventListener("keydown", (e) => {
+      if (isTyping() || e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k === "n" && view === "daily") {
+        e.preventDefault();
+        document.querySelector('.composer input[name="title"]')?.focus();
+      } else if (k === "l" && view === "daily") {
+        e.preventDefault();
+        document.querySelector('#logPanel input[name="event"]')?.focus();
+      } else if (k === "v") setView(view === "daily" ? "summary" : "daily");
+      else if (k === "t") goTo(todayISO());
+      else if (e.key === "[") goTo(shiftAnchor(currentDate, -1));
+      else if (e.key === "]") goTo(shiftAnchor(currentDate, 1));
+    });
+
+    // 予定時刻の遅れ表示を更新する。入力中は描き直さない。
+    setInterval(() => { if (!isTyping()) render(); }, 60_000);
+
+    // 計測中の時計だけを毎秒書き換える（全体は描き直さない）
+    setInterval(() => {
+      const r = state.running;
+      const e = r && entryOf(r);
+      if (!e) return;
+      const text = fmtClockDur(spentOf(e, r.kind, r.date));
+      for (const el of document.querySelectorAll("[data-live]")) el.textContent = text;
+    }, 1000);
+
+    render();
+  </script>
+</body>
+</html>
